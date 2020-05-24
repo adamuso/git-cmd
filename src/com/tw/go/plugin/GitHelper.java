@@ -1,5 +1,7 @@
 package com.tw.go.plugin;
 
+import com.tw.go.plugin.cmd.Console;
+import com.tw.go.plugin.cmd.ConsoleBase;
 import com.tw.go.plugin.cmd.ProcessOutputStreamConsumer;
 import com.tw.go.plugin.model.GitConfig;
 import com.tw.go.plugin.model.Revision;
@@ -16,12 +18,22 @@ public abstract class GitHelper {
     protected final File workingDir;
     protected final ProcessOutputStreamConsumer stdOut;
     protected final ProcessOutputStreamConsumer stdErr;
+    protected ConsoleBase console;
 
     public GitHelper(GitConfig gitConfig, File workingDir, ProcessOutputStreamConsumer stdOut, ProcessOutputStreamConsumer stdErr) {
         this.gitConfig = gitConfig;
         this.workingDir = workingDir;
         this.stdOut = stdOut;
         this.stdErr = stdErr;
+        this.console = Console.getInstance();
+    }
+
+    public ConsoleBase getConsole() {
+        return console;
+    }
+
+    public void setConsole(ConsoleBase console) {
+        this.console = console;
     }
 
     public abstract String version();

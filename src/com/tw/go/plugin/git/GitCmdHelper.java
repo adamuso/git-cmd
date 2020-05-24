@@ -1,7 +1,6 @@
 package com.tw.go.plugin.git;
 
 import com.tw.go.plugin.GitHelper;
-import com.tw.go.plugin.cmd.Console;
 import com.tw.go.plugin.cmd.ConsoleResult;
 import com.tw.go.plugin.cmd.InMemoryConsumer;
 import com.tw.go.plugin.cmd.ProcessOutputStreamConsumer;
@@ -32,13 +31,13 @@ public class GitCmdHelper extends GitHelper {
 
     @Override
     public String version() {
-        CommandLine gitCmd = Console.createCommand("--version");
+        CommandLine gitCmd = console.createCommand("--version");
         return runAndGetOutput(gitCmd, new File("/")).stdOut().get(0);
     }
 
     @Override
     public void checkConnection() {
-        CommandLine gitCmd = Console.createCommand("ls-remote", gitConfig.getEffectiveUrl());
+        CommandLine gitCmd = console.createCommand("ls-remote", gitConfig.getEffectiveUrl());
         runAndGetOutput(gitCmd);
     }
 
@@ -54,37 +53,37 @@ public class GitCmdHelper extends GitHelper {
 
         args.add(gitConfig.getEffectiveUrl());
         args.add(workingDir.getAbsolutePath());
-        CommandLine gitClone = Console.createCommand(args.toArray(new String[0]));
+        CommandLine gitClone = console.createCommand(args.toArray(new String[0]));
         runAndGetOutput(gitClone, null, stdOut, stdErr);
     }
 
     @Override
     public void checkoutRemoteBranchToLocal() {
-        CommandLine gitCmd = Console.createCommand("checkout", "-f", gitConfig.getEffectiveBranch());
+        CommandLine gitCmd = console.createCommand("checkout", "-f", gitConfig.getEffectiveBranch());
         runOrBomb(gitCmd);
     }
 
     @Override
     public String workingRepositoryUrl() {
-        CommandLine gitConfig = Console.createCommand("config", "remote.origin.url");
+        CommandLine gitConfig = console.createCommand("config", "remote.origin.url");
         return runAndGetOutput(gitConfig).stdOut().get(0);
     }
 
     @Override
     public String getCurrentBranch() {
-        CommandLine gitRevParse = Console.createCommand("rev-parse", "--abbrev-ref", "HEAD");
+        CommandLine gitRevParse = console.createCommand("rev-parse", "--abbrev-ref", "HEAD");
         return runAndGetOutput(gitRevParse).stdOut().get(0);
     }
 
     @Override
     public int getCommitCount() {
-        CommandLine gitCmd = Console.createCommand("rev-list", "HEAD", "--count");
+        CommandLine gitCmd = console.createCommand("rev-list", "HEAD", "--count");
         return Integer.parseInt(runAndGetOutput(gitCmd).stdOut().get(0));
     }
 
     @Override
     public String currentRevision() {
-        CommandLine gitLog = Console.createCommand("log", "-1", "--pretty=format:%H", "--no-decorate", "--no-color");
+        CommandLine gitLog = console.createCommand("log", "-1", "--pretty=format:%H", "--no-decorate", "--no-color");
         return runAndGetOutput(gitLog).stdOut().stream().findFirst().orElse(null);
     }
 
@@ -143,7 +142,7 @@ public class GitCmdHelper extends GitHelper {
 
     @Override
     public Map<String, String> getBranchToRevisionMap(String pattern) {
-        CommandLine gitCmd = Console.createCommand("show-ref");
+        CommandLine gitCmd = console.createCommand("show-ref");
         List<String> outputLines = runAndGetOutput(gitCmd).stdOut();
         Map<String, String> branchToRevisionMap = new HashMap<>();
         for (String line : outputLines) {
@@ -160,7 +159,7 @@ public class GitCmdHelper extends GitHelper {
     }
 
     private List<Revision> gitLog(String... args) {
-        CommandLine gitLog = Console.createCommand(args);
+        CommandLine gitLog = console.createCommand(args);
         List<String> gitLogOutput = runAndGetOutput(gitLog).stdOut();
 
         List<Revision> revisions = new GitModificationParser().parse(gitLogOutput);
@@ -188,7 +187,7 @@ public class GitCmdHelper extends GitHelper {
     }
 
     private ConsoleResult diffTree(String node) {
-        CommandLine gitCmd = Console.createCommand("diff-tree", "--name-status", "--root", "-r", "-c", node);
+        CommandLine gitCmd = console.createCommand("diff-tree", "--name-status", "--root", "-r", "-c", node);
         return runAndGetOutput(gitCmd);
     }
 
@@ -216,7 +215,7 @@ public class GitCmdHelper extends GitHelper {
 
     @Override
     public void pull() {
-        CommandLine gitCommit = Console.createCommand("pull");
+        CommandLine gitCommit = console.createCommand("pull");
         runOrBomb(gitCommit);
     }
 
@@ -227,12 +226,12 @@ public class GitCmdHelper extends GitHelper {
         if (!StringUtil.isEmpty(refSpec)) {
             args.add(refSpec);
         }
-        runOrBomb(Console.createCommand(args.toArray(new String[0])));
+        runOrBomb(console.createCommand(args.toArray(new String[0])));
     }
 
     private void fetchToDepth(int depth) {
         stdOut.consumeLine(String.format("[GIT] Fetching to commit depth %s", depth == Integer.MAX_VALUE ? "[INFINITE]" : depth));
-        runOrBomb(Console.createCommand("fetch", "origin", "--depth=" + depth, "--recurse-submodules=no"));
+        runOrBomb(console.createCommand("fetch", "origin", "--depth=" + depth, "--recurse-submodules=no"));
     }
 
     @Override
@@ -240,7 +239,7 @@ public class GitCmdHelper extends GitHelper {
         gitConfig.getShallowClone().ifPresent(settings -> unshallowIfNecessary(settings.getAdditionalFetchDepth(), revision));
 
         stdOut.consumeLine("[GIT] Updating working copy to revision " + revision);
-        CommandLine gitResetHard = Console.createCommand("reset", "--hard", revision);
+        CommandLine gitResetHard = console.createCommand("reset", "--hard", revision);
         runOrBomb(gitResetHard);
     }
 
@@ -261,7 +260,7 @@ public class GitCmdHelper extends GitHelper {
 
     private boolean branchContains(String revision) {
         try {
-            ConsoleResult result = runAndGetOutput(Console.createCommand("branch", "-r", "--contains", revision));
+            ConsoleResult result = runAndGetOutput(console.createCommand("branch", "-r", "--contains", revision));
             return result.stdOut().stream().anyMatch(line -> line.contains(gitConfig.getRemoteBranch()));
         } catch (Exception ignore) {
             return false;
@@ -285,19 +284,19 @@ public class GitCmdHelper extends GitHelper {
     }
 
     private void cleanUnversionedFiles(File workingDir) {
-        CommandLine gitClean = Console.createCommand("clean", "-dff");
+        CommandLine gitClean = console.createCommand("clean", "-dff");
         runAndGetOutput(gitClean, workingDir, stdOut, stdErr);
     }
 
     @Override
     public void gc() {
         stdOut.consumeLine("[GIT] Performing git gc");
-        runOrBomb(Console.createCommand("gc", "--auto"));
+        runOrBomb(console.createCommand("gc", "--auto"));
     }
 
     @Override
     public Map<String, String> submoduleUrls() {
-        CommandLine gitConfig = Console.createCommand("config", "--get-regexp", "^submodule\\..+\\.url");
+        CommandLine gitConfig = console.createCommand("config", "--get-regexp", "^submodule\\..+\\.url");
         List<String> submoduleList = new ArrayList<>();
         try {
             submoduleList = runAndGetOutput(gitConfig).stdOut();
@@ -317,7 +316,7 @@ public class GitCmdHelper extends GitHelper {
 
     @Override
     public List<String> submoduleFolders() {
-        CommandLine gitCmd = Console.createCommand("submodule", "status");
+        CommandLine gitCmd = console.createCommand("submodule", "status");
         return submoduleFolders(runAndGetOutput(gitCmd).stdOut());
     }
 
@@ -336,78 +335,78 @@ public class GitCmdHelper extends GitHelper {
     @Override
     public void printSubmoduleStatus() {
         stdOut.consumeLine("[GIT] Git sub-module status");
-        CommandLine gitSubModuleStatus = Console.createCommand("submodule", "status");
+        CommandLine gitSubModuleStatus = console.createCommand("submodule", "status");
         runOrBomb(gitSubModuleStatus);
     }
 
     @Override
     public void checkoutAllModifiedFilesInSubmodules() {
         stdOut.consumeLine("[GIT] Removing modified files in submodules");
-        CommandLine gitSubmoduleCheckout = Console.createCommand("submodule", "foreach", "--recursive", "git", "checkout", ".");
+        CommandLine gitSubmoduleCheckout = console.createCommand("submodule", "foreach", "--recursive", "git", "checkout", ".");
         runOrBomb(gitSubmoduleCheckout);
     }
 
     @Override
     public int getSubModuleCommitCount(String subModuleFolder) {
-        CommandLine gitCmd = Console.createCommand("rev-list", "HEAD", "--count");
+        CommandLine gitCmd = console.createCommand("rev-list", "HEAD", "--count");
         return Integer.parseInt(runAndGetOutput(gitCmd, new File(workingDir, subModuleFolder)).stdOut().get(0));
     }
 
     @Override
     public void submoduleInit() {
-        CommandLine gitSubModuleInit = Console.createCommand("submodule", "init");
+        CommandLine gitSubModuleInit = console.createCommand("submodule", "init");
         runOrBomb(gitSubModuleInit);
     }
 
     @Override
     public void submoduleSync() {
-        CommandLine gitSubModuleSync = Console.createCommand("submodule", "sync");
+        CommandLine gitSubModuleSync = console.createCommand("submodule", "sync");
         runOrBomb(gitSubModuleSync);
 
-        CommandLine gitSubModuleForEachSync = Console.createCommand("submodule", "foreach", "--recursive", "git", "submodule", "sync");
+        CommandLine gitSubModuleForEachSync = console.createCommand("submodule", "foreach", "--recursive", "git", "submodule", "sync");
         runOrBomb(gitSubModuleForEachSync);
     }
 
     @Override
     public void submoduleUpdate() {
-        CommandLine gitSubModuleUpdate = Console.createCommand("submodule", "update");
+        CommandLine gitSubModuleUpdate = console.createCommand("submodule", "update");
         runOrBomb(gitSubModuleUpdate);
     }
 
     @Override
     public void init() {
-        CommandLine gitCmd = Console.createCommand("init");
+        CommandLine gitCmd = console.createCommand("init");
         runOrBomb(gitCmd);
     }
 
     @Override
     public void add(File fileToAdd) {
-        CommandLine gitAdd = Console.createCommand("add", fileToAdd.getName());
+        CommandLine gitAdd = console.createCommand("add", fileToAdd.getName());
         runOrBomb(gitAdd);
     }
 
     @Override
     public void commit(String message) {
-        CommandLine gitCommit = Console.createCommand("commit", "-m", message);
+        CommandLine gitCommit = console.createCommand("commit", "-m", message);
         runOrBomb(gitCommit);
     }
 
     @Override
     public void commitOnDate(String message, Date commitDate) {
-        CommandLine gitCmd = Console.createCommand("commit", "-m", message);
+        CommandLine gitCmd = console.createCommand("commit", "-m", message);
         runOrBomb(gitCmd);
     }
 
     @Override
     public void submoduleAdd(String repoUrl, String submoduleNameToPutInGitSubmodules, String folder) {
         String[] addSubmoduleWithSameNameArgs = new String[]{"submodule", "add", repoUrl, folder};
-        runOrBomb(Console.createCommand(addSubmoduleWithSameNameArgs));
+        runOrBomb(console.createCommand(addSubmoduleWithSameNameArgs));
 
         String[] changeSubmoduleNameInGitModules = new String[]{"config", "--file", ".gitmodules", "--rename-section", "submodule." + folder, "submodule." + submoduleNameToPutInGitSubmodules};
-        runOrBomb(Console.createCommand(changeSubmoduleNameInGitModules));
+        runOrBomb(console.createCommand(changeSubmoduleNameInGitModules));
 
         String[] addGitModules = new String[]{"add", ".gitmodules"};
-        runOrBomb(Console.createCommand(addGitModules));
+        runOrBomb(console.createCommand(addGitModules));
     }
 
     @Override
@@ -422,29 +421,29 @@ public class GitCmdHelper extends GitHelper {
     public void submoduleRemove(String folderName) {
         configRemoveSection("submodule." + folderName);
 
-        CommandLine gitConfig = Console.createCommand("config", "-f", ".gitmodules", "--remove-section", "submodule." + folderName);
+        CommandLine gitConfig = console.createCommand("config", "-f", ".gitmodules", "--remove-section", "submodule." + folderName);
         runOrBomb(gitConfig);
 
-        CommandLine gitRm = Console.createCommand("rm", "--cached", folderName);
+        CommandLine gitRm = console.createCommand("rm", "--cached", folderName);
         runOrBomb(gitRm);
 
         FileUtils.deleteQuietly(new File(workingDir, folderName));
     }
 
     private void configRemoveSection(String section) {
-        CommandLine gitCmd = Console.createCommand("config", "--remove-section", section);
+        CommandLine gitCmd = console.createCommand("config", "--remove-section", section);
         runOrBomb(gitCmd);
     }
 
     @Override
     public void changeSubmoduleUrl(String submoduleName, String newUrl) {
-        CommandLine gitConfig = Console.createCommand("config", "--file", ".gitmodules", "submodule." + submoduleName + ".url", newUrl);
+        CommandLine gitConfig = console.createCommand("config", "--file", ".gitmodules", "submodule." + submoduleName + ".url", newUrl);
         runOrBomb(gitConfig);
     }
 
     @Override
     public void push() {
-        CommandLine gitCommit = Console.createCommand("push");
+        CommandLine gitCommit = console.createCommand("push");
         runOrBomb(gitCommit);
     }
 
@@ -461,6 +460,6 @@ public class GitCmdHelper extends GitHelper {
     }
 
     private ConsoleResult runAndGetOutput(CommandLine gitCmd, File workingDir, ProcessOutputStreamConsumer stdOut, ProcessOutputStreamConsumer stdErr) {
-        return Console.runOrBomb(gitCmd, workingDir, stdOut, stdErr);
+        return console.runOrBomb(gitCmd, workingDir, stdOut, stdErr);
     }
 }
